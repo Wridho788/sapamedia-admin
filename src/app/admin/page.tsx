@@ -1,6 +1,9 @@
 'use client'
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { usePermissions, useAuth } from '@/hooks/use-auth'
+import { RoleGuard } from '@/components/guards/role-guard'
 import { 
   FileText, 
   Eye, 
@@ -9,7 +12,9 @@ import {
   TrendingUp,
   Clock,
   CheckCircle,
-  Archive
+  Archive,
+  PlusIcon,
+  SettingsIcon
 } from 'lucide-react'
 
 const stats = [
@@ -75,24 +80,60 @@ const recentArticles = [
 ]
 
 export default function AdminDashboard() {
+  const {
+    isWriter,
+    isEditor,
+    isAdmin,
+  } = usePermissions()
+  const { authUser } = useAuth()
+
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
-        <p className="text-gray-600 mt-2">Welcome back! Here's what's happening with your content.</p>
+      {/* Header with Role Info */}
+      <div className="flex justify-between items-start">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
+          <p className="text-gray-600 mt-2">
+            Welcome back! You're logged in as{' '}
+            <span className="font-medium capitalize text-blue-600">
+              {authUser?.role?.replace('_', ' ')}
+            </span>
+          </p>
+        </div>
+        
+        {/* Quick Actions based on role */}
+        <div className="flex gap-2">
+          <Button size="sm">
+            <PlusIcon className="h-4 w-4 mr-2" />
+            New Article
+          </Button>
+          
+          <RoleGuard requiredRole="admin">
+            <Button size="sm" variant="outline">
+              <SettingsIcon className="h-4 w-4 mr-2" />
+              Settings
+            </Button>
+          </RoleGuard>
+        </div>
       </div>
 
-      {/* Stats Grid */}
+      {/* Stats Grid - Role-based visibility */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {stats.map((stat) => {
           const Icon = stat.icon
+          
+          // Show different stats based on role
+          if (stat.title === 'Categories' && !isAdmin) return null
+          if (stat.title === 'Users' && !isAdmin) return null
+          
           return (
             <Card key={stat.title}>
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-gray-600">{stat.title}</p>
+                    <p className="text-sm font-medium text-gray-600">
+                      {stat.title === 'Total Articles' && isWriter ? 'My Articles' : stat.title}
+                    </p>
                     <p className="text-3xl font-bold text-gray-900">{stat.value}</p>
                     <p className="text-sm text-green-600 mt-1">
                       {stat.change} from last month
@@ -106,6 +147,24 @@ export default function AdminDashboard() {
             </Card>
           )
         })}
+        
+        {/* Role-specific additional stats */}
+        {isAdmin && (
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">System Health</p>
+                  <p className="text-3xl font-bold text-green-600">98%</p>
+                  <p className="text-sm text-green-600 mt-1">All systems operational</p>
+                </div>
+                <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+                  <CheckCircle className="w-6 h-6 text-green-600" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -172,6 +231,49 @@ export default function AdminDashboard() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Role-based Permissions Info (Debug) */}
+      <Card className="border-dashed border-gray-300">
+        <CardHeader>
+          <CardTitle className="text-sm font-medium text-gray-600 flex items-center gap-2">
+            <SettingsIcon className="h-4 w-4" />
+            Current Role Permissions
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="text-sm space-y-2">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div>
+              <span className="font-medium">Role:</span>
+              <span className="ml-2 px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs font-mono">
+                {authUser?.role}
+              </span>
+            </div>
+            <div>
+              <span className="font-medium">Articles:</span>
+              <span className="ml-2 text-green-600">✓ Full Access</span>
+            </div>
+            <div>
+              <span className="font-medium">Categories:</span>
+              <span className={`ml-2 ${isAdmin ? 'text-green-600' : 'text-red-500'}`}>
+                {isAdmin ? '✓ Can Manage' : '✗ View Only'}
+              </span>
+            </div>
+            <div>
+              <span className="font-medium">Users:</span>
+              <span className={`ml-2 ${isAdmin ? 'text-green-600' : 'text-red-500'}`}>
+                {isAdmin ? '✓ Can Manage' : '✗ No Access'}
+              </span>
+            </div>
+          </div>
+          
+          <div className="mt-4 p-3 bg-blue-50 rounded-lg">
+            <p className="text-xs text-blue-700">
+              <strong>Role Hierarchy:</strong> Writer → Editor → Admin. 
+              Higher roles inherit all permissions from lower roles.
+            </p>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   )
 }

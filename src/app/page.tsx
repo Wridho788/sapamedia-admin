@@ -1,7 +1,21 @@
-import Link from "next/link";
-import Image from "next/image";
+'use client'
+
+import { useEffect } from 'react'
+import { useRouter } from 'next/navigation'
+import Link from "next/link"
+import Image from "next/image"
+import { useAuthStore } from '@/store/auth'
 
 export default function Home() {
+  const router = useRouter()
+  const { isAuthenticated } = useAuthStore()
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      router.push('/admin')
+    }
+  }, [isAuthenticated, router])
+
   return (
     <div className="flex min-h-screen items-center justify-center bg-linear-to-br from-blue-50 to-indigo-100">
       <main className="flex flex-col items-center justify-center space-y-8 text-center px-4">
@@ -28,21 +42,13 @@ export default function Home() {
         {/* Actions */}
         <div className="flex flex-col sm:flex-row gap-4">
           <Link 
-            href="/admin"
+            href="/auth/login"
             className="bg-blue-600 text-white px-8 py-3 rounded-lg font-medium hover:bg-blue-700 transition-colors shadow-lg hover:shadow-xl"
           >
-            Masuk ke Admin Panel
-          </Link>
-          <Link 
-            href="/auth/login"
-            className="border border-gray-300 text-gray-700 px-8 py-3 rounded-lg font-medium hover:bg-gray-50 transition-colors"
-          >
-            Login
+            Login ke Admin Panel
           </Link>
         </div>
-
-       
       </main>
     </div>
-  );
+  )
 }

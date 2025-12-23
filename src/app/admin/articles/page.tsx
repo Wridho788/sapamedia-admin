@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -12,6 +12,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import { Textarea } from '@/components/ui/textarea'
 import { 
   Plus, 
   Search, 
@@ -20,66 +29,58 @@ import {
   Eye,
   Edit,
   Trash2,
-  Calendar
+  Calendar,
+  Loader2,
+  Check,
+  X,
+  AlertCircle
 } from 'lucide-react'
 import { formatDateTime } from '@/lib/utils'
-
-// Mock data - replace with real data from your API
-const mockArticles = [
-  {
-    id: '1',
-    title: 'Panduan Lengkap Next.js 14 untuk Developer',
-    slug: 'panduan-lengkap-nextjs-14-untuk-developer',
-    excerpt: 'Pelajari fitur-fitur terbaru Next.js 14 dan cara menggunakannya dalam project Anda.',
-    status: 'published',
-    author: { name: 'John Doe', email: 'john@example.com' },
-    categories: [{ name: 'Technology' }, { name: 'Programming' }],
-    createdAt: '2024-01-15T10:30:00Z',
-    publishedAt: '2024-01-15T12:00:00Z',
-    views: 1234
-  },
-  {
-    id: '2',
-    title: 'Tips & Trik React Development',
-    slug: 'tips-trik-react-development',
-    excerpt: 'Kumpulan tips dan trik untuk meningkatkan produktivitas dalam React development.',
-    status: 'draft',
-    author: { name: 'Jane Smith', email: 'jane@example.com' },
-    categories: [{ name: 'Programming' }],
-    createdAt: '2024-01-14T09:15:00Z',
-    publishedAt: null,
-    views: 0
-  },
-  {
-    id: '3',
-    title: 'Optimasi Performance Website',
-    slug: 'optimasi-performance-website',
-    excerpt: 'Cara-cara efektif untuk meningkatkan performa website Anda.',
-    status: 'in_review',
-    author: { name: 'Mike Johnson', email: 'mike@example.com' },
-    categories: [{ name: 'Web Development' }],
-    createdAt: '2024-01-13T14:20:00Z',
-    publishedAt: null,
-    views: 567
-  },
-  {
-    id: '4',
-    title: 'Memahami TypeScript untuk Pemula',
-    slug: 'memahami-typescript-untuk-pemula',
-    excerpt: 'Pengenalan TypeScript dan manfaatnya dalam pengembangan JavaScript.',
-    status: 'archived',
-    author: { name: 'Sarah Wilson', email: 'sarah@example.com' },
-    categories: [{ name: 'Programming' }, { name: 'TypeScript' }],
-    createdAt: '2024-01-12T11:45:00Z',
-    publishedAt: '2024-01-12T16:00:00Z',
-    views: 892
-  }
-]
+import { usePosts, useDeletePost, useApprovePost, useRejectPost } from '@/hooks/use-posts'
+import { createAuthHelpers } from '@/lib/auth'
+import { UserRole } from '@/types'
+import { toast } from 'sonner'
 
 export default function ArticlesPage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
-  const [filteredArticles, setFilteredArticles] = useState(mockArticles)
+  const [userRole, setUserRole] = useState<UserRole | null>(null)
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null)
+  
+  // Dialog states
+  const [rejectDialogOpen, setRejectDialogOpen] = useState(false)
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [selectedPostId, setSelectedPostId] = useState<string | null>(null)
+  const [rejectReason, setRejectReason] = useState('')
+  
+  // Use posts hook with filters
+  const { posts, loading, error, total, refetch } = usePosts({
+    search: searchQuery || undefined,
+    status: statusFilter !== 'all' ? statusFilter : undefined,
+    limit: 50
+  })
+
+  const { deletePost, loading: deleteLoading } = useDeletePost()
+  const { approvePost, loading: approveLoading } = useApprovePost()
+  const { rejectPost, loading: rejectLoading } = useRejectPost()
+
+  // Get current user role
+  useEffect(() => {
+    const fetchUserRole = async () => {
+      const auth = createAuthHelpers()
+      const user = await auth.getCurrentUser()
+      
+      if (user) {
+        setCurrentUserId(user.id)
+        const profile = await auth.getUserProfile(user.id)
+        if (profile) {
+          setUserRole(profile.role)
+        }
+      }
+    }
+
+    fetchUserRole()
+  }, [])
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -113,30 +114,84 @@ export default function ArticlesPage() {
 
   const handleSearch = (query: string) => {
     setSearchQuery(query)
-    filterArticles(query, statusFilter)
   }
 
   const handleStatusFilter = (status: string) => {
     setStatusFilter(status)
-    filterArticles(searchQuery, status)
   }
 
-  const filterArticles = (query: string, status: string) => {
-    let filtered = mockArticles
-
-    if (query) {
-      filtered = filtered.filter(article =>
-        article.title.toLowerCase().includes(query.toLowerCase()) ||
-        article.excerpt.toLowerCase().includes(query.toLowerCase())
-      )
+  const handleApprove = async (postId: string) => {
+    const result = await approvePost(postId)
+    
+    if (result.success) {
+      toast.success('Article approved successfully')
+      refetch()
+    } else {
+      toast.error(result.error || 'Failed to approve article')
     }
-
-    if (status !== 'all') {
-      filtered = filtered.filter(article => article.status === status)
-    }
-
-    setFilteredArticles(filtered)
   }
+
+  const handleRejectClick = (postId: string) => {
+    setSelectedPostId(postId)
+    setRejectReason('')
+    setRejectDialogOpen(true)
+  }
+
+  const handleRejectConfirm = async () => {
+    if (!selectedPostId) return
+    
+    const result = await rejectPost(selectedPostId, rejectReason)
+    
+    if (result.success) {
+      toast.success('Article rejected')
+      setRejectDialogOpen(false)
+      setRejectReason('')
+      setSelectedPostId(null)
+      refetch()
+    } else {
+      toast.error(result.error || 'Failed to reject article')
+    }
+  }
+
+  const handleDeleteClick = (postId: string) => {
+    setSelectedPostId(postId)
+    setDeleteDialogOpen(true)
+  }
+
+  const handleDeleteConfirm = async () => {
+    if (!selectedPostId) return
+    
+    const result = await deletePost(selectedPostId)
+    
+    if (result.success) {
+      toast.success('Article deleted successfully')
+      setDeleteDialogOpen(false)
+      setSelectedPostId(null)
+      refetch()
+    } else {
+      toast.error(result.error || 'Failed to delete article')
+    }
+  }
+
+  // Check permissions
+  const canCreateArticle = userRole === 'writer'
+  const canApproveReject = userRole === 'editor'
+  const canDelete = userRole === 'admin'
+  const canEdit = (post: any) => {
+    if (userRole === 'writer') {
+      return post.writer_id === currentUserId && post.status === 'draft'
+    }
+    return false
+  }
+
+  // Debounce search to prevent too many API calls
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      // The usePosts hook will automatically refetch when searchQuery changes
+    }, 300)
+
+    return () => clearTimeout(timeoutId)
+  }, [searchQuery])
 
   return (
     <div className="space-y-6">
@@ -148,12 +203,14 @@ export default function ArticlesPage() {
             Manage your articles and content.
           </p>
         </div>
-        <Link href="/admin/articles/new">
-          <Button>
-            <Plus className="h-4 w-4 mr-2" />
-            New Article
-          </Button>
-        </Link>
+        {canCreateArticle && (
+          <Link href="/admin/articles/new">
+            <Button>
+              <Plus className="h-4 w-4 mr-2" />
+              New Article
+            </Button>
+          </Link>
+        )}
       </div>
 
       {/* Filters */}
@@ -190,84 +247,230 @@ export default function ArticlesPage() {
       {/* Articles List */}
       <Card>
         <CardHeader>
-          <CardTitle>All Articles ({filteredArticles.length})</CardTitle>
+          <CardTitle>All Articles ({total})</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
-            {filteredArticles.map((article) => (
-              <div
-                key={article.id}
-                className="flex items-center justify-between p-4 border border-gray-100 rounded-lg hover:bg-gray-50"
-              >
-                <div className="flex-1">
-                  <div className="flex items-center space-x-3 mb-2">
-                    <h3 className="font-semibold text-gray-900">{article.title}</h3>
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(article.status)}`}>
-                      {getStatusText(article.status)}
-                    </span>
+          {loading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+              <span className="ml-2 text-gray-600">Loading articles...</span>
+            </div>
+          ) : error ? (
+            <div className="text-center py-12">
+              <div className="text-red-400 mb-4">
+                <AlertCircle className="h-12 w-12 mx-auto" />
+              </div>
+              <h3 className="text-lg font-medium text-gray-900 mb-2">Error loading articles</h3>
+              <p className="text-gray-600 mb-6">{error}</p>
+              <Button onClick={refetch} variant="outline">
+                Try Again
+              </Button>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {posts.map((post) => (
+                <div
+                  key={post.id}
+                  className="flex items-center justify-between p-4 border border-gray-100 rounded-lg hover:bg-gray-50"
+                >
+                  <div className="flex-1">
+                    <div className="flex items-center space-x-3 mb-2">
+                      <h3 className="font-semibold text-gray-900">{post.title}</h3>
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(post.status)}`}>
+                        {getStatusText(post.status)}
+                      </span>
+                    </div>
+                    <p className="text-gray-600 text-sm mb-2">{post.excerpt || 'No excerpt available'}</p>
+                    
+                    {/* Reject Reason */}
+                    {post.reject_reason && (
+                      <div className="mb-2 p-2 bg-red-50 border border-red-200 rounded text-sm">
+                        <span className="font-medium text-red-700">Rejected: </span>
+                        <span className="text-red-600">{post.reject_reason}</span>
+                      </div>
+                    )}
+                    
+                    <div className="flex items-center space-x-4 text-xs text-gray-500">
+                      <span>By {post.writer?.full_name || post.editor?.full_name || 'Unknown'}</span>
+                      <span>•</span>
+                      <span className="flex items-center">
+                        <Calendar className="h-3 w-3 mr-1" />
+                        {formatDateTime(post.created_at)}
+                      </span>
+                      {post.status === 'published' && post.published_at && (
+                        <>
+                          <span>•</span>
+                          <span>Published {formatDateTime(post.published_at)}</span>
+                        </>
+                      )}
+                      {post.category && (
+                        <>
+                          <span>•</span>
+                          <span>{post.category.name}</span>
+                        </>
+                      )}
+                    </div>
                   </div>
-                  <p className="text-gray-600 text-sm mb-2">{article.excerpt}</p>
-                  <div className="flex items-center space-x-4 text-xs text-gray-500">
-                    <span>By {article.author.name}</span>
-                    <span>•</span>
-                    <span className="flex items-center">
-                      <Calendar className="h-3 w-3 mr-1" />
-                      {formatDateTime(article.createdAt)}
-                    </span>
-                    {article.status === 'published' && (
+                  
+                  <div className="flex items-center space-x-2">
+                    {/* Writer: Can edit only draft posts they created */}
+                    {canEdit(post) && (
+                      <Link href={`/admin/articles/${post.id}`}>
+                        <Button variant="ghost" size="sm">
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                      </Link>
+                    )}
+                    
+                    {/* Editor: Can approve or reject in_review posts */}
+                    {canApproveReject && post.status === 'in_review' && (
                       <>
-                        <span>•</span>
-                        <span className="flex items-center">
-                          <Eye className="h-3 w-3 mr-1" />
-                          {article.views} views
-                        </span>
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={() => handleApprove(post.id)}
+                          disabled={approveLoading}
+                          className="text-green-600 hover:text-green-700 hover:bg-green-50"
+                        >
+                          <Check className="h-4 w-4" />
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={() => handleRejectClick(post.id)}
+                          disabled={rejectLoading}
+                          className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
                       </>
                     )}
-                    <span>•</span>
-                    <span>{article.categories.map(cat => cat.name).join(', ')}</span>
+                    
+                    {/* Super Admin: Can delete published posts */}
+                    {canDelete && post.status === 'published' && (
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
+                        onClick={() => handleDeleteClick(post.id)}
+                        disabled={deleteLoading}
+                        className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    )}
+                    
+                    <Button variant="ghost" size="sm">
+                      <Eye className="h-4 w-4" />
+                    </Button>
                   </div>
                 </div>
-                <div className="flex items-center space-x-2">
-                  <Link href={`/admin/articles/${article.id}`}>
-                    <Button variant="ghost" size="sm">
-                      <Edit className="h-4 w-4" />
-                    </Button>
-                  </Link>
-                  <Button variant="ghost" size="sm">
-                    <Eye className="h-4 w-4" />
-                  </Button>
-                  <Button variant="ghost" size="sm">
-                    <MoreHorizontal className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-            ))}
-          </div>
+              ))}
 
-          {filteredArticles.length === 0 && (
-            <div className="text-center py-12">
-              <div className="text-gray-400 mb-4">
-                <Search className="h-12 w-12 mx-auto" />
-              </div>
-              <h3 className="text-lg font-medium text-gray-900 mb-2">No articles found</h3>
-              <p className="text-gray-600 mb-6">
-                {searchQuery || statusFilter !== 'all' 
-                  ? 'Try adjusting your search or filter criteria.'
-                  : 'Get started by creating your first article.'
-                }
-              </p>
-              {!searchQuery && statusFilter === 'all' && (
-                <Link href="/admin/articles/new">
-                  <Button>
-                    <Plus className="h-4 w-4 mr-2" />
-                    Create Article
-                  </Button>
-                </Link>
+              {posts.length === 0 && (
+                <div className="text-center py-12">
+                  <div className="text-gray-400 mb-4">
+                    <Search className="h-12 w-12 mx-auto" />
+                  </div>
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">No articles found</h3>
+                  <p className="text-gray-600 mb-6">
+                    {searchQuery || statusFilter !== 'all' 
+                      ? 'Try adjusting your search or filter criteria.'
+                      : 'Get started by creating your first article.'
+                    }
+                  </p>
+                  {!searchQuery && statusFilter === 'all' && canCreateArticle && (
+                    <Link href="/admin/articles/new">
+                      <Button>
+                        <Plus className="h-4 w-4 mr-2" />
+                        Create Article
+                      </Button>
+                    </Link>
+                  )}
+                </div>
               )}
             </div>
           )}
         </CardContent>
       </Card>
+
+      {/* Reject Dialog */}
+      <Dialog open={rejectDialogOpen} onOpenChange={setRejectDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Reject Article</DialogTitle>
+            <DialogDescription>
+              Please provide a reason for rejecting this article. This will help the writer improve their content.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <Textarea
+              placeholder="Enter reject reason..."
+              value={rejectReason}
+              onChange={(e) => setRejectReason(e.target.value)}
+              rows={4}
+              className="w-full"
+            />
+          </div>
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => setRejectDialogOpen(false)}
+              disabled={rejectLoading}
+            >
+              Cancel
+            </Button>
+            <Button 
+              variant="destructive" 
+              onClick={handleRejectConfirm}
+              disabled={!rejectReason.trim() || rejectLoading}
+            >
+              {rejectLoading ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Rejecting...
+                </>
+              ) : (
+                'Reject Article'
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Dialog */}
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Article</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete this article? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => setDeleteDialogOpen(false)}
+              disabled={deleteLoading}
+            >
+              Cancel
+            </Button>
+            <Button 
+              variant="destructive" 
+              onClick={handleDeleteConfirm}
+              disabled={deleteLoading}
+            >
+              {deleteLoading ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                'Delete Article'
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

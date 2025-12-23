@@ -1,14 +1,25 @@
 export interface User {
   id: string
   email: string
-  name: string
+  full_name: string
   role: UserRole
-  avatar?: string
-  createdAt: Date
-  updatedAt: Date
+  avatar_url?: string
+  created_at: string
+  updated_at?: string
 }
 
-export type UserRole = 'admin' | 'editor' | 'author'
+export interface AuthUser {
+  user: User | null
+  role: UserRole | null
+  isLoggedIn: boolean
+}
+
+export interface LoginCredentials {
+  email: string
+  password: string
+}
+
+export type UserRole = 'admin' | 'editor' | 'writer'
 
 export interface Category {
   id: string

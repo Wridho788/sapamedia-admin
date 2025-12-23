@@ -3,8 +3,10 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import { cn } from '@/lib/utils'
+import { useAuthStore } from '@/store/auth'
+import { UserRole } from '@/types'
 import {
   LayoutDashboard,
   FileText,
@@ -14,39 +16,58 @@ import {
   Menu,
   X,
   ChevronRight,
-  LogOut
+  LogOut,
+  ImageIcon
 } from 'lucide-react'
 
-const menuItems = [
+interface MenuItem {
+  title: string
+  href: string
+  icon: any
+  roles: UserRole[]
+  children?: { title: string; href: string; roles: UserRole[] }[]
+}
+
+const menuItems: MenuItem[] = [
   {
     title: 'Dashboard',
     href: '/admin',
-    icon: LayoutDashboard
+    icon: LayoutDashboard,
+    roles: ['admin', 'editor', 'writer']
   },
   {
     title: 'Articles',
     href: '/admin/articles',
     icon: FileText,
+    roles: ['admin', 'editor', 'writer'],
     children: [
-      { title: 'All Articles', href: '/admin/articles' },
-      { title: 'New Article', href: '/admin/articles/new' },
-      { title: 'Drafts', href: '/admin/articles/drafts' }
+      { title: 'All Articles', href: '/admin/articles', roles: ['admin', 'editor', 'writer'] },
+      { title: 'New Article', href: '/admin/articles/new', roles: ['admin', 'editor', 'writer'] }
     ]
   },
   {
     title: 'Categories',
     href: '/admin/categories',
-    icon: FolderOpen
+    icon: FolderOpen,
+    roles: ['admin', 'editor']
+  },
+  {
+    title: 'Media',
+    href: '/admin/media',
+    icon: ImageIcon,
+    roles: ['admin', 'editor']
   },
   {
     title: 'Users & Roles',
     href: '/admin/users',
-    icon: Users
+    icon: Users,
+    roles: ['admin']
   },
   {
     title: 'Settings',
     href: '/admin/settings',
-    icon: Settings
+    icon: Settings,
+    roles: ['admin']
   }
 ]
 
@@ -56,7 +77,9 @@ interface SidebarProps {
 
 export function Sidebar({ className }: SidebarProps) {
   const pathname = usePathname()
+  const router = useRouter()
   const [expandedItems, setExpandedItems] = useState<string[]>([])
+  const { authUser } = useAuthStore()
 
   const toggleExpanded = (href: string) => {
     setExpandedItems(prev =>
@@ -65,6 +88,14 @@ export function Sidebar({ className }: SidebarProps) {
         : [...prev, href]
     )
   }
+
+  const handleLogout = async () => {
+    // Simple logout for testing
+    router.push('/auth/login')
+  }
+
+  // Filter menu items based on user role - show all items for testing
+  const filteredMenuItems = menuItems
 
   return (
     <div className={cn('pb-12 w-64 bg-white border-r border-gray-200', className)}>
@@ -85,14 +116,32 @@ export function Sidebar({ className }: SidebarProps) {
           </Link>
         </div>
 
+        {/* User info */}
+        <div className="px-6 py-3 border-b border-gray-200">
+          <div className="flex items-center space-x-3">
+            <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+              <span className="text-sm font-medium text-blue-700">
+                {authUser?.id?.charAt(0)?.toUpperCase() || 'U'}
+              </span>
+            </div>
+            <div>
+              <p className="text-sm font-medium text-gray-900">User</p>
+              <p className="text-xs text-gray-500 capitalize">{authUser?.role?.replace('_', ' ') || 'No Role'}</p>
+            </div>
+          </div>
+        </div>
+
         {/* Navigation */}
         <div className="px-3">
           <div className="space-y-1">
-            {menuItems.map((item) => {
+            {filteredMenuItems.map((item) => {
               const Icon = item.icon
               const isActive = pathname === item.href || pathname.startsWith(item.href + '/')
               const isExpanded = expandedItems.includes(item.href)
               const hasChildren = item.children && item.children.length > 0
+              
+              // Show all children for testing
+              const filteredChildren = item.children
 
               return (
                 <div key={item.href}>
@@ -109,7 +158,7 @@ export function Sidebar({ className }: SidebarProps) {
                       <Icon className="mr-3 h-4 w-4" />
                       {item.title}
                     </Link>
-                    {hasChildren && (
+                    {hasChildren && filteredChildren && filteredChildren.length > 0 && (
                       <button
                         onClick={() => toggleExpanded(item.href)}
                         className="p-1 hover:bg-gray-100 rounded"
@@ -124,9 +173,9 @@ export function Sidebar({ className }: SidebarProps) {
                     )}
                   </div>
                   
-                  {hasChildren && isExpanded && (
+                  {hasChildren && isExpanded && filteredChildren && (
                     <div className="ml-6 mt-1 space-y-1">
-                      {item.children?.map((child) => (
+                      {filteredChildren.map((child) => (
                         <Link
                           key={child.href}
                           href={child.href}
@@ -150,7 +199,10 @@ export function Sidebar({ className }: SidebarProps) {
 
         {/* Logout */}
         <div className="px-3 pt-4 border-t border-gray-200">
-          <button className="flex items-center px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50 rounded-lg transition-colors w-full">
+          <button 
+            onClick={handleLogout}
+            className="flex items-center px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50 rounded-lg transition-colors w-full"
+          >
             <LogOut className="mr-3 h-4 w-4" />
             Logout
           </button>
