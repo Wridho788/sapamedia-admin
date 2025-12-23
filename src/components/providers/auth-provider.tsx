@@ -25,13 +25,17 @@ export function AuthProvider({ children }: AuthProviderProps) {
       setLoading(true)
 
       try {
-        // Check current auth state via API
-        const response = await apiClient.get('/auth/me')
-        const { user } = response.data
+        // Check current auth state via Supabase API
+        const response = await apiClient.get('/auth/v1/user')
+        const user = response.data
+
+        // Fetch user profile for role
+        const profileResponse = await apiClient.get(`/rest/v1/user_profiles?id=eq.${user.id}`)
+        const profile = profileResponse.data[0]
 
         setAuth({
           id: user.id,
-          role: user.role,
+          role: profile?.roles || user.user_metadata?.role || 'writer',
         })
       } catch (error: any) {
         // If unauthorized, clear auth

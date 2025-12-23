@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import apiClient from '@/lib/axios'
+import { useAuthStore } from '@/store/auth'
 
 // Query Keys
 export const QUERY_KEYS = {
@@ -18,13 +19,19 @@ export const QUERY_KEYS = {
 // Auth
 export function useLogout() {
   const queryClient = useQueryClient()
+  const { clearAuth } = useAuthStore.getState()
   
   return useMutation({
     mutationFn: async () => {
-      const response = await apiClient.post('/auth/logout')
+      const response = await apiClient.post('/auth/v1/logout')
       return response.data
     },
     onSuccess: () => {
+      // Clear auth cookie
+      const projectRef = process.env.NEXT_PUBLIC_SUPABASE_URL?.split('//')[1]?.split('.')[0]
+      document.cookie = `sb-${projectRef}-auth-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC`
+      
+      clearAuth()
       queryClient.clear()
       toast.success('Logged out successfully')
     },
@@ -40,11 +47,10 @@ export function usePosts(scope?: 'mine' | 'pending' | 'all', status?: string) {
     queryKey: scope ? (scope === 'mine' ? QUERY_KEYS.myPosts : scope === 'pending' ? QUERY_KEYS.pendingPosts : QUERY_KEYS.posts) : QUERY_KEYS.posts,
     queryFn: async () => {
       const params = new URLSearchParams()
-      if (scope) params.append('scope', scope)
-      if (status) params.append('status', status)
+      if (status) params.append('status', `eq.${status}`)
       
-      const response = await apiClient.get(`/posts?${params.toString()}`)
-      return response.data.posts
+      const response = await apiClient.get(`/rest/v1/posts?${params.toString()}`)
+      return response.data
     },
   })
 }
@@ -53,8 +59,8 @@ export function usePost(id: string) {
   return useQuery({
     queryKey: QUERY_KEYS.post(id),
     queryFn: async () => {
-      const response = await apiClient.get(`/posts/${id}`)
-      return response.data.post
+      const response = await apiClient.get(`/rest/v1/posts?id=eq.${id}`)
+      return response.data[0]
     },
     enabled: !!id,
   })
@@ -65,7 +71,7 @@ export function useCreatePost() {
   
   return useMutation({
     mutationFn: async (data: any) => {
-      const response = await apiClient.post('/posts', data)
+      const response = await apiClient.post('/rest/v1/posts', data)
       return response.data
     },
     onSuccess: () => {
@@ -84,7 +90,7 @@ export function useUpdatePost(id: string) {
   
   return useMutation({
     mutationFn: async (data: any) => {
-      const response = await apiClient.put(`/posts/${id}`, data)
+      const response = await apiClient.patch(`/rest/v1/posts?id=eq.${id}`, data)
       return response.data
     },
     onSuccess: () => {
@@ -104,7 +110,7 @@ export function useDeletePost() {
   
   return useMutation({
     mutationFn: async (id: string) => {
-      const response = await apiClient.delete(`/posts/${id}`)
+      const response = await apiClient.delete(`/rest/v1/posts?id=eq.${id}`)
       return response.data
     },
     onSuccess: () => {
@@ -123,7 +129,7 @@ export function useSubmitPost() {
   
   return useMutation({
     mutationFn: async (id: string) => {
-      const response = await apiClient.post(`/posts/${id}/submit`)
+      const response = await apiClient.patch(`/rest/v1/posts?id=eq.${id}`, { status: 'pending' })
       return response.data
     },
     onSuccess: () => {
@@ -144,8 +150,8 @@ export function useApprovals() {
   return useQuery({
     queryKey: QUERY_KEYS.approvals,
     queryFn: async () => {
-      const response = await apiClient.get('/approvals')
-      return response.data.approvals
+      const response = await apiClient.get('/rest/v1/posts?status=eq.pending')
+      return response.data
     },
   })
 }
@@ -155,7 +161,7 @@ export function useApprovePost() {
   
   return useMutation({
     mutationFn: async (postId: string) => {
-      const response = await apiClient.post(`/approvals/${postId}/approve`)
+      const response = await apiClient.patch(`/rest/v1/posts?id=eq.${postId}`, { status: 'published' })
       return response.data
     },
     onSuccess: () => {
@@ -174,7 +180,7 @@ export function useRejectPost() {
   
   return useMutation({
     mutationFn: async ({ postId, reason }: { postId: string; reason: string }) => {
-      const response = await apiClient.post(`/approvals/${postId}/reject`, { reason })
+      const response = await apiClient.patch(`/rest/v1/posts?id=eq.${postId}`, { status: 'rejected' })
       return response.data
     },
     onSuccess: () => {
@@ -193,8 +199,8 @@ export function useCategories() {
   return useQuery({
     queryKey: QUERY_KEYS.categories,
     queryFn: async () => {
-      const response = await apiClient.get('/categories')
-      return response.data.categories
+      const response = await apiClient.get('/rest/v1/categories')
+      return response.data
     },
   })
 }
@@ -203,8 +209,8 @@ export function useCategory(id: string) {
   return useQuery({
     queryKey: QUERY_KEYS.category(id),
     queryFn: async () => {
-      const response = await apiClient.get(`/categories/${id}`)
-      return response.data.category
+      const response = await apiClient.get(`/rest/v1/categories?id=eq.${id}`)
+      return response.data[0]
     },
     enabled: !!id,
   })
@@ -215,7 +221,7 @@ export function useCreateCategory() {
   
   return useMutation({
     mutationFn: async (data: any) => {
-      const response = await apiClient.post('/categories', data)
+      const response = await apiClient.post('/rest/v1/categories', data)
       return response.data
     },
     onSuccess: () => {
@@ -233,7 +239,7 @@ export function useUpdateCategory(id: string) {
   
   return useMutation({
     mutationFn: async (data: any) => {
-      const response = await apiClient.put(`/categories/${id}`, data)
+      const response = await apiClient.patch(`/rest/v1/categories?id=eq.${id}`, data)
       return response.data
     },
     onSuccess: () => {
@@ -252,7 +258,7 @@ export function useDeleteCategory() {
   
   return useMutation({
     mutationFn: async (id: string) => {
-      const response = await apiClient.delete(`/categories/${id}`)
+      const response = await apiClient.delete(`/rest/v1/categories?id=eq.${id}`)
       return response.data
     },
     onSuccess: () => {
@@ -270,8 +276,8 @@ export function useUsers() {
   return useQuery({
     queryKey: QUERY_KEYS.users,
     queryFn: async () => {
-      const response = await apiClient.get('/users')
-      return response.data.users
+      const response = await apiClient.get('/rest/v1/user_profiles')
+      return response.data
     },
   })
 }
@@ -280,8 +286,8 @@ export function useUser(id: string) {
   return useQuery({
     queryKey: QUERY_KEYS.user(id),
     queryFn: async () => {
-      const response = await apiClient.get(`/users/${id}`)
-      return response.data.user
+      const response = await apiClient.get(`/rest/v1/user_profiles?id=eq.${id}`)
+      return response.data[0]
     },
     enabled: !!id,
   })
@@ -292,7 +298,7 @@ export function useUpdateUser(id: string) {
   
   return useMutation({
     mutationFn: async (data: any) => {
-      const response = await apiClient.patch(`/users/${id}`, data)
+      const response = await apiClient.patch(`/rest/v1/user_profiles?id=eq.${id}`, data)
       return response.data
     },
     onSuccess: () => {

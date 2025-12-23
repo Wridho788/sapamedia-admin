@@ -35,16 +35,45 @@ export default function LoginPage() {
 
   const loginMutation = useMutation({
     mutationFn: async (credentials: LoginCredentials) => {
-      const response = await apiClient.post('/auth/login', credentials)
+      const response = await apiClient.post('/auth/v1/token?grant_type=password', credentials)
       return response.data
     },
-    onSuccess: (data) => {
-      setAuth(data.user)
+    onSuccess: async (data) => {
+      // Store auth token in cookie (Supabase format)
+      const authData = {
+        access_token: data.access_token,
+        refresh_token: data.refresh_token,
+        expires_in: data.expires_in,
+        token_type: data.token_type,
+        user: data.user
+      }
+      
+      // Set cookie with Supabase format
+      const projectRef = process.env.NEXT_PUBLIC_SUPABASE_URL?.split('//')[1]?.split('.')[0]
+      document.cookie = `sb-${projectRef}-auth-token=${encodeURIComponent(JSON.stringify(authData))}; path=/; max-age=${data.expires_in}`
+      
+      // Fetch user role from profile
+      try {
+        const profileResponse = await apiClient.get(`/rest/v1/user_profiles?id=eq.${data.user.id}`)
+        const profile = profileResponse.data[0]
+        
+        setAuth({
+          id: data.user.id,
+          role: profile?.roles || data.user.user_metadata?.role || 'writer'
+        })
+      } catch (err) {
+        // Fallback to user metadata if profile fetch fails
+        setAuth({
+          id: data.user.id,
+          role: data.user.user_metadata?.role || 'writer'
+        })
+      }
+      
       toast.success('Login successful!')
       router.replace('/admin')
     },
     onError: (error: any) => {
-      const errorMessage = error.response?.data?.error || 'Login failed'
+      const errorMessage = error.response?.data?.error_description || error.response?.data?.msg || 'Login failed'
       setError(errorMessage)
       toast.error(errorMessage)
     },

@@ -1,18 +1,42 @@
 import axios from 'axios'
 import { useAuthStore } from '@/store/auth'
 
-// Create axios instance
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!
+const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+
+// Create axios instance pointing to Supabase
 export const apiClient = axios.create({
-  baseURL: '/api',
+  baseURL: SUPABASE_URL,
   headers: {
     'Content-Type': 'application/json',
+    'apikey': SUPABASE_ANON_KEY,
   },
-  withCredentials: true, // Important for cookie-based auth
+  withCredentials: true,
 })
 
-// Request interceptor
+// Request interceptor - add auth token to requests
 apiClient.interceptors.request.use(
   (config) => {
+    // Get access token from Supabase cookies
+    if (typeof window !== 'undefined') {
+      // Supabase stores auth token in format: sb-<project-ref>-auth-token
+      const cookies = document.cookie.split(';')
+      const authCookie = cookies.find(c => c.trim().match(/^sb-.*-auth-token=/))
+      
+      if (authCookie) {
+        try {
+          const cookieValue = authCookie.split('=')[1]
+          const decodedValue = decodeURIComponent(cookieValue)
+          const authData = JSON.parse(decodedValue)
+          
+          if (authData.access_token) {
+            config.headers.Authorization = `Bearer ${authData.access_token}`
+          }
+        } catch (e) {
+          console.error('Failed to parse auth cookie:', e)
+        }
+      }
+    }
     return config
   },
   (error) => {
