@@ -11,29 +11,24 @@ export const apiClient = axios.create({
     'Content-Type': 'application/json',
     'apikey': SUPABASE_ANON_KEY,
   },
-  withCredentials: true,
 })
 
 // Request interceptor - add auth token to requests
 apiClient.interceptors.request.use(
   (config) => {
-    // Get access token from Supabase cookies
+    // Get access token from localStorage
     if (typeof window !== 'undefined') {
-      // Supabase stores auth token in format: sb-<project-ref>-auth-token
-      const cookies = document.cookie.split(';')
-      const authCookie = cookies.find(c => c.trim().match(/^sb-.*-auth-token=/))
+      const authData = localStorage.getItem('supabase-auth')
       
-      if (authCookie) {
+      if (authData) {
         try {
-          const cookieValue = authCookie.split('=')[1]
-          const decodedValue = decodeURIComponent(cookieValue)
-          const authData = JSON.parse(decodedValue)
+          const parsed = JSON.parse(authData)
           
-          if (authData.access_token) {
-            config.headers.Authorization = `Bearer ${authData.access_token}`
+          if (parsed.access_token) {
+            config.headers.Authorization = `Bearer ${parsed.access_token}`
           }
         } catch (e) {
-          console.error('Failed to parse auth cookie:', e)
+          console.error('Failed to parse auth data:', e)
         }
       }
     }

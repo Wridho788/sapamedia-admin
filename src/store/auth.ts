@@ -40,6 +40,10 @@ export const useAuthStore = create<AuthStore>()(
       },
 
       clearAuth: () => {
+        // Clear localStorage auth data
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem('supabase-auth')
+        }
         set({
           authUser: null,
           isAuthenticated: false,
