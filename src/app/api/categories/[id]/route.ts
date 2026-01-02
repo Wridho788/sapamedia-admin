@@ -56,7 +56,7 @@ export async function PUT(
 
     // Get user role
     const { data: profile } = await supabase
-      .from('user_profiles')
+      .from('profiles')
       .select('roles')
       .eq('id', user.id)
       .single()
@@ -114,7 +114,7 @@ export async function DELETE(
 
     // Get user role
     const { data: profile } = await supabase
-      .from('user_profiles')
+      .from('profiles')
       .select('roles')
       .eq('id', user.id)
       .single()

@@ -276,7 +276,7 @@ export function useUsers() {
   return useQuery({
     queryKey: QUERY_KEYS.users,
     queryFn: async () => {
-      const response = await apiClient.get('/rest/v1/user_profiles')
+      const response = await apiClient.get('/rest/v1/profiles')
       return response.data
     },
   })
@@ -286,7 +286,7 @@ export function useUser(id: string) {
   return useQuery({
     queryKey: QUERY_KEYS.user(id),
     queryFn: async () => {
-      const response = await apiClient.get(`/rest/v1/user_profiles?id=eq.${id}`)
+      const response = await apiClient.get(`/rest/v1/profiles?id=eq.${id}`)
       return response.data[0]
     },
     enabled: !!id,
@@ -298,7 +298,7 @@ export function useUpdateUser(id: string) {
   
   return useMutation({
     mutationFn: async (data: any) => {
-      const response = await apiClient.patch(`/rest/v1/user_profiles?id=eq.${id}`, data)
+      const response = await apiClient.patch(`/rest/v1/profiles?id=eq.${id}`, data)
       return response.data
     },
     onSuccess: () => {

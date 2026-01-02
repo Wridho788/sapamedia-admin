@@ -19,7 +19,7 @@ export async function POST(
     // Get user role
     const { data: profileData } = await supabase
       .from('profiles')
-      .select('role')
+      .select('roles')
       .eq('id', user.id)
       .single()
 
@@ -29,7 +29,7 @@ export async function POST(
 
     // Only editors can approve
     const userRole = (profileData as any).roles as string
-    if (userRole !== 'editor' && userRole !== 'admin') {
+    if (userRole !== 'editor' && userRole !== 'super_admin') {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
@@ -51,18 +51,34 @@ export async function POST(
       )
     }
 
-    // Call RPC function to approve post
-    const { data, error } = await supabase.rpc('approve_post', {
-      post_id: postId,
-      editor_id: user.id,
-    })
+    // Update post status to approved
+    const { data: updatedPost, error: updateError } = await supabase
+      .from('posts')
+      .update({ status: 'approved' })
+      .eq('id', postId)
+      .select()
+      .single()
 
-    if (error) {
-      console.error('[Approve Post Error]:', error)
-      return NextResponse.json({ error: error.message }, { status: 500 })
+    if (updateError) {
+      console.error('[Approve Post Error]:', updateError)
+      return NextResponse.json({ error: updateError.message }, { status: 500 })
     }
 
-    return NextResponse.json({ success: true, data })
+    // Create approval record
+    const { error: approvalError } = await supabase
+      .from('approvals')
+      .insert({
+        post_id: postId,
+        editor_id: user.id,
+        status: 'approved'
+      })
+
+    if (approvalError) {
+      console.error('[Create Approval Record Error]:', approvalError)
+      // Don't fail if approval record creation fails
+    }
+
+    return NextResponse.json({ success: true, data: updatedPost })
   } catch (error) {
     console.error('[Approve Post Error]:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })

@@ -18,7 +18,7 @@ export async function GET(
 
     // Get user role
     const { data: profile } = await supabase
-      .from('user_profiles')
+      .from('profiles')
       .select('roles')
       .eq('id', user.id)
       .single()
@@ -33,7 +33,7 @@ export async function GET(
     }
 
     const { data, error } = await supabase
-      .from('user_profiles')
+      .from('profiles')
       .select('id, email, full_name, roles, avatar_url, is_active, created_at, updated_at')
       .eq('id', id)
       .single()
@@ -65,7 +65,7 @@ export async function PATCH(
 
     // Get user role
     const { data: profile } = await supabase
-      .from('user_profiles')
+      .from('profiles')
       .select('roles')
       .eq('id', user.id)
       .single()
@@ -94,7 +94,7 @@ export async function PATCH(
     }
 
     const { data, error } = await supabase
-      .from('user_profiles')
+      .from('profiles')
       .update(updateData)
       .eq('id', id)
       .select('id, email, full_name, roles, avatar_url, is_active, created_at, updated_at')

@@ -71,8 +71,12 @@ export function Header({ onMenuClick }: HeaderProps) {
                   <User className="h-4 w-4 text-gray-600" />
                 </div>
                 <div className="hidden md:block text-left">
-                  <p className="text-sm font-medium">{authUser?.role || 'User'}</p>
-                  <p className="text-xs text-gray-500 capitalize">{authUser?.role || ''}</p>
+                  <p className="text-sm font-medium capitalize">
+                    {authUser?.role === 'super_admin' ? 'Super Admin' : authUser?.role?.replace('_', ' ') || 'User'}
+                  </p>
+                  <p className="text-xs text-gray-500 capitalize">
+                    {authUser?.role === 'super_admin' ? 'Admin' : authUser?.role || 'No Role'}
+                  </p>
                 </div>
               </Button>
             </DropdownMenuTrigger>

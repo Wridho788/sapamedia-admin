@@ -33,41 +33,41 @@ const menuItems: MenuItem[] = [
     title: 'Dashboard',
     href: '/admin',
     icon: LayoutDashboard,
-    roles: ['super_admin', 'editor', 'writer']
+    roles: ['admin', 'editor', 'writer']
   },
   {
     title: 'Articles',
     href: '/admin/articles',
     icon: FileText,
-    roles: ['super_admin', 'editor', 'writer'],
+    roles: ['admin', 'editor', 'writer'],
     children: [
-      { title: 'All Articles', href: '/admin/articles', roles: ['super_admin', 'editor', 'writer'] },
-      { title: 'New Article', href: '/admin/articles/new', roles: ['super_admin', 'editor', 'writer'] }
+      { title: 'All Articles', href: '/admin/articles', roles: ['admin', 'editor', 'writer'] },
+      { title: 'New Article', href: '/admin/articles/new', roles: ['admin', 'writer'] }
     ]
   },
   {
     title: 'Categories',
     href: '/admin/categories',
     icon: FolderOpen,
-    roles: ['super_admin', 'editor']
+    roles: ['admin', 'editor']
   },
   {
     title: 'Media',
     href: '/admin/media',
     icon: ImageIcon,
-    roles: ['super_admin', 'editor']
+    roles: ['admin', 'editor']
   },
   {
     title: 'Users & Roles',
     href: '/admin/users',
     icon: Users,
-    roles: ['super_admin']
+    roles: ['admin']
   },
   {
     title: 'Settings',
     href: '/admin/settings',
     icon: Settings,
-    roles: ['super_admin']
+    roles: ['admin']
   }
 ]
 
@@ -121,12 +121,16 @@ export function Sidebar({ className }: SidebarProps) {
           <div className="flex items-center space-x-3">
             <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
               <span className="text-sm font-medium text-blue-700">
-                {authUser?.id?.charAt(0)?.toUpperCase() || 'U'}
+                {authUser?.role?.charAt(0)?.toUpperCase() || 'U'}
               </span>
             </div>
             <div>
-              <p className="text-sm font-medium text-gray-900">User</p>
-              <p className="text-xs text-gray-500 capitalize">{authUser?.role?.replace('_', ' ') || 'No Role'}</p>
+              <p className="text-sm font-medium text-gray-900 capitalize">
+                {authUser?.role === 'super_admin' ? 'Super Admin' : authUser?.role?.replace('_', ' ') || 'User'}
+              </p>
+              <p className="text-xs text-gray-500 capitalize">
+                {authUser?.role === 'super_admin' ? 'Admin' : authUser?.role || 'No Role'}
+              </p>
             </div>
           </div>
         </div>

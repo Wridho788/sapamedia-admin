@@ -1,16 +1,19 @@
 // Database Types - Sesuai Roadmap V1
 
-export type UserRole = 'super_admin' | 'editor' | 'writer'
+export type UserRole = 'super_admin' | 'admin' | 'editor' | 'writer'
 export type PostStatus = 'draft' | 'pending' | 'approved' | 'rejected' | 'published'
 export type ApprovalStatus = 'approved' | 'rejected'
 
 export interface Profile {
   id: string
   full_name: string
+  email?: string
   avatar_url?: string
-  role: UserRole
+  roles: UserRole
+  role?: UserRole  // Alias for roles
   is_active: boolean
   created_at: string
+  updated_at?: string
 }
 
 export interface Post {
@@ -39,7 +42,9 @@ export interface Category {
   id: string
   name: string
   slug: string
+  description?: string
   created_at: string
+  updated_at?: string
 }
 
 export interface PostCategory {

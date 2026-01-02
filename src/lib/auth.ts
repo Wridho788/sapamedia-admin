@@ -67,7 +67,8 @@ export function hasPermission(userRole: UserRole, requiredRole: UserRole): boole
   const roleHierarchy: Record<UserRole, number> = {
     'writer': 1,
     'editor': 2,
-    'super_admin': 3
+    'admin': 3,
+    'super_admin': 4
   }
   
   return roleHierarchy[userRole] >= roleHierarchy[requiredRole]
@@ -78,6 +79,7 @@ export function canAccess(userRole: UserRole, feature: string): boolean {
   const permissions: Record<UserRole, string[]> = {
     'writer': ['dashboard', 'articles', 'articles:read', 'articles:create', 'articles:update'],
     'editor': ['dashboard', 'articles', 'categories', 'media', 'articles:read', 'articles:delete', 'categories:manage', 'media:manage'],
+    'admin': ['dashboard', 'articles', 'categories', 'media', 'users', 'settings', 'articles:read', 'articles:delete', 'categories:manage', 'media:manage', 'users:manage'],
     'super_admin': ['*'] // Full access
   }
   

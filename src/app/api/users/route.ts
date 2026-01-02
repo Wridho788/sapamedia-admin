@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
 
     // Get user role
     const { data: profile } = await supabase
-      .from('user_profiles')
+      .from('profiles')
       .select('roles')
       .eq('id', user.id)
       .single()
@@ -29,7 +29,7 @@ export async function GET(request: NextRequest) {
     }
 
     const { data, error } = await supabase
-      .from('user_profiles')
+      .from('profiles')
       .select('id, email, full_name, roles, avatar_url, is_active, created_at, updated_at')
       .order('created_at', { ascending: false })
 

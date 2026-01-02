@@ -51,7 +51,7 @@ export default function LoginPage() {
       
       // Fetch user role from profile
       try {
-        const profileResponse = await apiClient.get(`/rest/v1/user_profiles?id=eq.${data.user.id}`)
+        const profileResponse = await apiClient.get(`/rest/v1/profiles?id=eq.${data.user.id}`)
         const profile = profileResponse.data[0]
         
         setAuth({

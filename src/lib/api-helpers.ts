@@ -5,7 +5,7 @@ export async function getUserRole(userId: string) {
   const supabase = await createClient()
   
   const { data: profile } = await supabase
-    .from('user_profiles')
+    .from('profiles')
     .select('roles')
     .eq('id', userId)
     .single()

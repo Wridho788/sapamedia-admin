@@ -18,7 +18,7 @@ export async function POST(
 
     // Get user role
     const { data: profile } = await supabase
-      .from('user_profiles')
+      .from('profiles')
       .select('roles')
       .eq('id', user.id)
       .single()
@@ -28,7 +28,7 @@ export async function POST(
     }
 
     // Only editors can reject
-    if (profile.roles !== 'editor' && profile.roles !== 'admin') {
+    if (profile.roles !== 'editor' && profile.roles !== 'super_admin') {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
@@ -60,19 +60,35 @@ export async function POST(
       )
     }
 
-    // Call RPC function to reject post
-    const { data, error } = await supabase.rpc('reject_post', {
-      post_id: postId,
-      editor_id: user.id,
-      reject_reason: reason,
-    })
+    // Update post status to rejected
+    const { data: updatedPost, error: updateError } = await supabase
+      .from('posts')
+      .update({ status: 'rejected' })
+      .eq('id', postId)
+      .select()
+      .single()
 
-    if (error) {
-      console.error('[Reject Post Error]:', error)
-      return NextResponse.json({ error: error.message }, { status: 500 })
+    if (updateError) {
+      console.error('[Reject Post Error]:', updateError)
+      return NextResponse.json({ error: updateError.message }, { status: 500 })
     }
 
-    return NextResponse.json({ success: true, data })
+    // Create approval record with rejection reason
+    const { error: approvalError } = await supabase
+      .from('approvals')
+      .insert({
+        post_id: postId,
+        editor_id: user.id,
+        status: 'rejected',
+        reason: reason
+      })
+
+    if (approvalError) {
+      console.error('[Create Approval Record Error]:', approvalError)
+      // Don't fail if approval record creation fails
+    }
+
+    return NextResponse.json({ success: true, data: updatedPost })
   } catch (error) {
     console.error('[Reject Post Error]:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })

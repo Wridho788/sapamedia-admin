@@ -55,9 +55,11 @@ export function EditorDashboard() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold text-gray-900">Dashboard Editor</h1>
-        <p className="text-gray-600 mt-1">Review dan kelola artikel</p>
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">Dashboard Editor</h1>
+          <p className="text-gray-600 mt-1">Review dan kelola artikel</p>
+        </div>
       </div>
 
       {/* Stats Cards */}

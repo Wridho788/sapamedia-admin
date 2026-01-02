@@ -24,81 +24,38 @@ import {
   Trash2
 } from 'lucide-react'
 import { formatDateTime } from '@/lib/utils'
-
-const mockUsers = [
-  {
-    id: '1',
-    name: 'John Doe',
-    email: 'john@sapamedia.com',
-    role: 'admin',
-    avatar: null,
-    status: 'active',
-    lastLogin: '2024-01-15T10:30:00Z',
-    createdAt: '2024-01-01T09:00:00Z',
-    articleCount: 15
-  },
-  {
-    id: '2',
-    name: 'Jane Smith',
-    email: 'jane@sapamedia.com',
-    role: 'editor',
-    avatar: null,
-    status: 'active',
-    lastLogin: '2024-01-14T16:20:00Z',
-    createdAt: '2024-01-05T14:30:00Z',
-    articleCount: 23
-  },
-  {
-    id: '3',
-    name: 'Mike Johnson',
-    email: 'mike@sapamedia.com',
-    role: 'author',
-    avatar: null,
-    status: 'active',
-    lastLogin: '2024-01-13T11:45:00Z',
-    createdAt: '2024-01-10T11:15:00Z',
-    articleCount: 8
-  },
-  {
-    id: '4',
-    name: 'Sarah Wilson',
-    email: 'sarah@sapamedia.com',
-    role: 'author',
-    avatar: null,
-    status: 'inactive',
-    lastLogin: '2024-01-05T08:20:00Z',
-    createdAt: '2024-01-08T16:45:00Z',
-    articleCount: 12
-  }
-]
+import { useUsers } from '@/hooks/use-users'
 
 const roles = [
+  { value: 'super_admin', label: 'Super Admin', color: 'bg-purple-100 text-purple-700' },
   { value: 'admin', label: 'Administrator', color: 'bg-red-100 text-red-700' },
   { value: 'editor', label: 'Editor', color: 'bg-blue-100 text-blue-700' },
-  { value: 'author', label: 'Author', color: 'bg-green-100 text-green-700' }
+  { value: 'writer', label: 'Writer', color: 'bg-green-100 text-green-700' }
 ]
 
 export default function UsersPage() {
-  const [users, setUsers] = useState(mockUsers)
+  const { data: usersData, isLoading } = useUsers()
+  const users = usersData || []
+  
   const [searchQuery, setSearchQuery] = useState('')
   const [roleFilter, setRoleFilter] = useState('all')
   const [statusFilter, setStatusFilter] = useState('all')
 
   const filteredUsers = users.filter(user => {
-    const matchesSearch = user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         user.email.toLowerCase().includes(searchQuery.toLowerCase())
-    const matchesRole = roleFilter === 'all' || user.role === roleFilter
-    const matchesStatus = statusFilter === 'all' || user.status === statusFilter
+    const matchesSearch = user.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         user.email?.toLowerCase().includes(searchQuery.toLowerCase())
+    const matchesRole = roleFilter === 'all' || user.roles === roleFilter
+    const matchesStatus = statusFilter === 'all' || (statusFilter === 'active' ? user.is_active : !user.is_active)
     
     return matchesSearch && matchesRole && matchesStatus
   })
 
   const getRoleInfo = (role: string) => {
-    return roles.find(r => r.value === role) || roles[2]
+    return roles.find(r => r.value === role) || roles[3]
   }
 
-  const getStatusColor = (status: string) => {
-    return status === 'active' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'
+  const getStatusColor = (isActive: boolean) => {
+    return isActive ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'
   }
 
   return (
@@ -160,25 +117,31 @@ export default function UsersPage() {
       </Card>
 
       {/* Users Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredUsers.map((user) => {
-          const roleInfo = getRoleInfo(user.role)
-          return (
-            <Card key={user.id} className="hover:shadow-md transition-shadow">
-              <CardContent className="p-6">
-                <div className="flex items-start justify-between mb-4">
-                  <div className="flex items-center space-x-3">
-                    <div className="w-12 h-12 bg-gray-200 rounded-full flex items-center justify-center">
-                      <User className="h-6 w-6 text-gray-500" />
+      {isLoading ? (
+        <div className="text-center py-12">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="text-sm text-gray-500 mt-3">Loading users...</p>
+        </div>
+      ) : filteredUsers.length > 0 ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredUsers.map((user) => {
+            const roleInfo = getRoleInfo(user.roles)
+            return (
+              <Card key={user.id} className="hover:shadow-md transition-shadow">
+                <CardContent className="p-6">
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="flex items-center space-x-3">
+                      <div className="w-12 h-12 bg-gray-200 rounded-full flex items-center justify-center">
+                        <User className="h-6 w-6 text-gray-500" />
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-gray-900">{user.full_name || 'No Name'}</h3>
+                        <p className="text-sm text-gray-500 flex items-center">
+                          <Mail className="h-3 w-3 mr-1" />
+                          {user.email || 'No Email'}
+                        </p>
+                      </div>
                     </div>
-                    <div>
-                      <h3 className="font-semibold text-gray-900">{user.name}</h3>
-                      <p className="text-sm text-gray-500 flex items-center">
-                        <Mail className="h-3 w-3 mr-1" />
-                        {user.email}
-                      </p>
-                    </div>
-                  </div>
                   <div className="flex items-center space-x-1">
                     <Button variant="ghost" size="sm">
                       <Edit className="h-4 w-4" />
@@ -195,23 +158,15 @@ export default function UsersPage() {
                       <Shield className="h-3 w-3 mr-1" />
                       {roleInfo.label}
                     </span>
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(user.status)}`}>
-                      {user.status === 'active' ? 'Active' : 'Inactive'}
+                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(user.is_active)}`}>
+                      {user.is_active ? 'Active' : 'Inactive'}
                     </span>
                   </div>
 
                   <div className="text-sm text-gray-500 space-y-1">
-                    <div className="flex items-center justify-between">
-                      <span>Articles:</span>
-                      <span className="font-medium">{user.articleCount}</span>
-                    </div>
                     <div className="flex items-center">
                       <Calendar className="h-3 w-3 mr-1" />
-                      <span>Last login: {new Date(user.lastLogin).toLocaleDateString('id-ID')}</span>
-                    </div>
-                    <div className="flex items-center">
-                      <Calendar className="h-3 w-3 mr-1" />
-                      <span>Joined: {new Date(user.createdAt).toLocaleDateString('id-ID')}</span>
+                      <span>Joined: {new Date(user.created_at).toLocaleDateString('id-ID')}</span>
                     </div>
                   </div>
                 </div>
@@ -220,24 +175,17 @@ export default function UsersPage() {
           )
         })}
       </div>
-
-      {filteredUsers.length === 0 && (
+      ) : (
         <Card>
           <CardContent className="p-12 text-center">
             <User className="h-12 w-12 text-gray-400 mx-auto mb-4" />
             <h3 className="text-lg font-medium text-gray-900 mb-2">No users found</h3>
-            <p className="text-gray-600 mb-6">
+            <p className="text-gray-600">
               {searchQuery || roleFilter !== 'all' || statusFilter !== 'all'
-                ? 'Try adjusting your search or filter criteria.'
-                : 'Get started by inviting your first team member.'
+                ? 'Try adjusting your filters.'
+                : 'No users available.'
               }
             </p>
-            {!searchQuery && roleFilter === 'all' && statusFilter === 'all' && (
-              <Button>
-                <Plus className="h-4 w-4 mr-2" />
-                Invite User
-              </Button>
-            )}
           </CardContent>
         </Card>
       )}

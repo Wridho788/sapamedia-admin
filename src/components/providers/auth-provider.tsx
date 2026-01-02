@@ -30,7 +30,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         const user = response.data
 
         // Fetch user profile for role
-        const profileResponse = await apiClient.get(`/rest/v1/user_profiles?id=eq.${user.id}`)
+        const profileResponse = await apiClient.get(`/rest/v1/profiles?id=eq.${user.id}`)
         const profile = profileResponse.data[0]
 
         setAuth({

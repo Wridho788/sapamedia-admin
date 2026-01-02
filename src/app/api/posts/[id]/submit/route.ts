@@ -18,7 +18,7 @@ export async function POST(
 
     // Get user role
     const { data: profile } = await supabase
-      .from('user_profiles')
+      .from('profiles')
       .select('roles')
       .eq('id', user.id)
       .single()
