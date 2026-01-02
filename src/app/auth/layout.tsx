@@ -10,20 +10,20 @@ export default function AuthLayout({
     <div className="min-h-screen bg-linear-to-br from-gray-50 to-gray-100 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         {/* Logo Header */}
-        <div className="text-center mb-8">
+        {/* <div className="text-center mb-8">
           <Link href="/" className="inline-block">
-            <div className="w-20 h-20 rounded-xl bg-blue-600 flex items-center justify-center shadow-lg hover:shadow-xl transition-shadow mx-auto mb-4">
+            <div className="w-40 h-40 rounded-xl flex items-center justify-center shadow-lg hover:shadow-xl transition-shadow mx-auto mb-4">
               <Image
                 src="/Logo.png"
                 alt="SapaMedia Logo"
                 width={40}
                 height={40}
-                className="object-contain"
+                className="object-fill"
               />
             </div>
           </Link>
           <h1 className="text-2xl font-bold text-gray-900 mb-1">SapaMedia</h1>
-        </div>
+        </div> */}
 
         {/* Auth Form */}
         {children}

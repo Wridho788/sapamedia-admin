@@ -1,11 +1,31 @@
+// Export types from database
+export type {
+  UserRole,
+  PostStatus,
+  ApprovalStatus,
+  Profile,
+  Post,
+  Category,
+  PostCategory,
+  Approval,
+  Comment,
+  ArticleStats,
+  ActivityLog,
+  Database
+} from './database'
+
+// Import for use in this file
+import type { UserRole, PostStatus, Post, Profile, Category, ArticleStats } from './database'
+
+// Application Types
 export interface User {
   id: string
   email: string
   full_name: string
   role: UserRole
   avatar_url?: string
+  is_active: boolean
   created_at: string
-  updated_at?: string
 }
 
 export interface AuthUser {
@@ -19,65 +39,56 @@ export interface LoginCredentials {
   password: string
 }
 
-export type UserRole = 'admin' | 'editor' | 'writer'
-
-export interface Category {
-  id: string
-  name: string
-  slug: string
-  description?: string
-  color?: string
-  createdAt: Date
-  updatedAt: Date
+// Post with relations
+export interface PostWithRelations extends Post {
+  writer?: Profile
+  editor?: Profile
+  categories?: Category[]
+  stats?: ArticleStats
 }
 
-export interface Tag {
-  id: string
-  name: string
-  slug: string
-  color?: string
+// API Response Types
+export interface PaginatedResponse<T> {
+  data: T[]
+  total: number
+  page: number
+  pageSize: number
 }
 
-export interface Article {
-  id: string
-  title: string
-  slug: string
-  content: string
-  excerpt: string
-  coverImage?: string
-  status: ArticleStatus
-  author: User
-  categories: Category[]
-  tags: Tag[]
-  seo: SEOData
-  publishedAt?: Date
-  createdAt: Date
-  updatedAt: Date
+export interface ApiError {
+  code: string
+  message: string
 }
 
-export type ArticleStatus = 'draft' | 'in_review' | 'published' | 'archived'
-
-export interface SEOData {
-  metaTitle?: string
-  metaDescription?: string
-  focusKeyword?: string
-  schema?: Record<string, any>
-}
-
+// Dashboard Stats
 export interface DashboardStats {
   totalArticles: number
-  publishedArticles: number
-  draftArticles: number
-  totalViews: number
-  totalCategories: number
-  totalUsers: number
+  draft: number
+  pending: number
+  approved: number
+  rejected: number
+  published: number
 }
 
-export interface MediaFile {
-  id: string
-  url: string
-  filename: string
-  size: number
-  mimeType: string
-  createdAt: Date
+export interface WriterStats extends DashboardStats {
+  recentRejections?: Array<{
+    postId: string
+    title: string
+    reason: string
+    rejectedAt: string
+  }>
+}
+
+export interface EditorStats {
+  pendingCount: number
+  approvedToday: number
+  rejectedToday: number
+  avgApprovalTime?: number
+}
+
+export interface SystemStats {
+  totalUsers: number
+  usersByRole: Record<UserRole, number>
+  articlesByStatus: Record<PostStatus, number>
+  approvalRate: number
 }

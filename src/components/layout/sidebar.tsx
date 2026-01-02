@@ -33,41 +33,41 @@ const menuItems: MenuItem[] = [
     title: 'Dashboard',
     href: '/admin',
     icon: LayoutDashboard,
-    roles: ['admin', 'editor', 'writer']
+    roles: ['super_admin', 'editor', 'writer']
   },
   {
     title: 'Articles',
     href: '/admin/articles',
     icon: FileText,
-    roles: ['admin', 'editor', 'writer'],
+    roles: ['super_admin', 'editor', 'writer'],
     children: [
-      { title: 'All Articles', href: '/admin/articles', roles: ['admin', 'editor', 'writer'] },
-      { title: 'New Article', href: '/admin/articles/new', roles: ['admin', 'editor', 'writer'] }
+      { title: 'All Articles', href: '/admin/articles', roles: ['super_admin', 'editor', 'writer'] },
+      { title: 'New Article', href: '/admin/articles/new', roles: ['super_admin', 'editor', 'writer'] }
     ]
   },
   {
     title: 'Categories',
     href: '/admin/categories',
     icon: FolderOpen,
-    roles: ['admin', 'editor']
+    roles: ['super_admin', 'editor']
   },
   {
     title: 'Media',
     href: '/admin/media',
     icon: ImageIcon,
-    roles: ['admin', 'editor']
+    roles: ['super_admin', 'editor']
   },
   {
     title: 'Users & Roles',
     href: '/admin/users',
     icon: Users,
-    roles: ['admin']
+    roles: ['super_admin']
   },
   {
     title: 'Settings',
     href: '/admin/settings',
     icon: Settings,
-    roles: ['admin']
+    roles: ['super_admin']
   }
 ]
 

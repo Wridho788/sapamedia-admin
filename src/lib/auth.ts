@@ -31,7 +31,7 @@ export function createAuthHelpers() {
           id: 'admin-user-id',
           full_name: 'Super Admin',
           email: 'admin@sapamedia.com',
-          role: 'admin',
+          role: 'super_admin',
           avatar_url: undefined
         },
         'editor-user-id': {
@@ -67,7 +67,7 @@ export function hasPermission(userRole: UserRole, requiredRole: UserRole): boole
   const roleHierarchy: Record<UserRole, number> = {
     'writer': 1,
     'editor': 2,
-    'admin': 3
+    'super_admin': 3
   }
   
   return roleHierarchy[userRole] >= roleHierarchy[requiredRole]
@@ -78,7 +78,7 @@ export function canAccess(userRole: UserRole, feature: string): boolean {
   const permissions: Record<UserRole, string[]> = {
     'writer': ['dashboard', 'articles', 'articles:read', 'articles:create', 'articles:update'],
     'editor': ['dashboard', 'articles', 'categories', 'media', 'articles:read', 'articles:delete', 'categories:manage', 'media:manage'],
-    'admin': ['*'] // Full access
+    'super_admin': ['*'] // Full access
   }
   
   const userPermissions = permissions[userRole]

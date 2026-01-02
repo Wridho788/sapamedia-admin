@@ -14,8 +14,8 @@ export async function GET(request: NextRequest) {
 
     // Get user role
     const { data: profileData } = await supabase
-      .from('user_profiles')
-      .select('roles')
+      .from('profiles')
+      .select('role')
       .eq('id', user.id)
       .single()
 

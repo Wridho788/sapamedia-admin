@@ -28,7 +28,7 @@ export function usePermissions() {
 
   return {
     hasRole,
-    isAdmin: authUser?.role === 'admin',
+    isAdmin: authUser?.role === 'super_admin',
     isEditor: authUser?.role === 'editor',
     isWriter: authUser?.role === 'writer',
   }

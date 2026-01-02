@@ -176,7 +176,7 @@ export default function ArticlesPage() {
   // Check permissions
   const canCreateArticle = userRole === 'writer'
   const canApproveReject = userRole === 'editor'
-  const canDelete = userRole === 'admin'
+  const canDelete = userRole === 'super_admin'
   const canEdit = (post: any) => {
     if (userRole === 'writer') {
       return post.writer_id === currentUserId && post.status === 'draft'

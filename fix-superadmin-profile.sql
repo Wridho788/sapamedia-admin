@@ -35,9 +35,9 @@ WHERE id IN (
 SELECT 
   p.id,
   p.full_name,
-  p.roles,
+  p.role,
   p.created_at,
   au.email
-FROM user_profiles p
+FROM profiles p
 JOIN auth.users au ON p.id = au.id
-ORDER BY p.roles DESC, au.email;
+ORDER BY p.role DESC, au.email;
