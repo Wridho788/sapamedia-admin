@@ -29,6 +29,12 @@ export interface Post {
   updated_at: string
 }
 
+// Extended Post with relations
+export interface PostWithWriter extends Post {
+  writer?: Profile
+  editor?: Profile
+}
+
 export interface Category {
   id: string
   name: string
@@ -49,6 +55,9 @@ export interface Approval {
   reason?: string
   created_at: string
 }
+
+// Alias for readability
+export type ApprovalHistory = Approval
 
 export interface Comment {
   id: string

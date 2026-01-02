@@ -3,7 +3,6 @@
 
 import { useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
@@ -18,121 +17,48 @@ import {
   Tag
 } from 'lucide-react'
 import Link from 'next/link'
-import { toast } from 'sonner'
-import apiClient from '@/lib/axios'
-import { Post, Profile } from '@/types'
 import { formatDate } from '@/lib/helpers'
-import { logActivity, ActivityActions } from '@/lib/activity-logger'
+import { useArticle } from '@/hooks/use-articles'
+import { useApproveArticle, useRejectArticle } from '@/hooks/use-approvals'
 
 export default function ArticleReviewPage() {
   const params = useParams()
   const router = useRouter()
-  const queryClient = useQueryClient()
   const [rejectionReason, setRejectionReason] = useState('')
   const [showRejectForm, setShowRejectForm] = useState(false)
 
   const postId = params.id as string
 
-  // Fetch post details
-  const { data: post, isLoading } = useQuery({
-    queryKey: ['post', postId],
-    queryFn: async () => {
-      const response = await apiClient.get(
-        `/rest/v1/posts?id=eq.${postId}&select=*,writer:profiles!writer_id(id,full_name,avatar_url)`
-      )
-      return response.data[0] as Post & { writer: Profile }
-    }
-  })
+  // Use hooks from SPRINT X
+  const { data: post, isLoading } = useArticle(postId)
+  const approveMutation = useApproveArticle()
+  const rejectMutation = useRejectArticle()
 
-  // Approve mutation
-  const approveMutation = useMutation({
-    mutationFn: async () => {
-      const authData = localStorage.getItem('supabase-auth')
-      const parsed = authData ? JSON.parse(authData) : null
-      const editorId = parsed?.user?.id
-
-      // Update post status
-      await apiClient.patch(`/rest/v1/posts?id=eq.${postId}`, {
-        status: 'approved',
-        editor_id: editorId,
-        published_at: new Date().toISOString()
-      })
-
-      // Create approval record
-      await apiClient.post('/rest/v1/approvals', {
-        post_id: postId,
-        editor_id: editorId,
-        status: 'approved'
-      })
-
-      // Log activity
-      await logActivity({
-        action: ActivityActions.POST_APPROVED,
-        entityType: 'post',
-        entityId: postId,
-        meta: {
-          title: post?.title
-        }
-      })
-    },
-    onSuccess: () => {
-      toast.success('Artikel berhasil disetujui!')
-      queryClient.invalidateQueries({ queryKey: ['post', postId] })
-      queryClient.invalidateQueries({ queryKey: ['editor-pending-posts'] })
-      router.push('/admin')
-    },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.message || 'Gagal menyetujui artikel')
-    }
-  })
-
-  // Reject mutation
-  const rejectMutation = useMutation({
-    mutationFn: async () => {
-      if (!rejectionReason.trim()) {
-        throw new Error('Alasan penolakan harus diisi')
+  const handleApprove = () => {
+    approveMutation.mutate(
+      { postId },
+      {
+        onSuccess: () => {
+          router.push('/admin')
+        },
       }
+    )
+  }
 
-      const authData = localStorage.getItem('supabase-auth')
-      const parsed = authData ? JSON.parse(authData) : null
-      const editorId = parsed?.user?.id
-
-      // Update post status
-      await apiClient.patch(`/rest/v1/posts?id=eq.${postId}`, {
-        status: 'rejected',
-        editor_id: editorId,
-        rejected_reason: rejectionReason
-      })
-
-      // Create approval record
-      await apiClient.post('/rest/v1/approvals', {
-        post_id: postId,
-        editor_id: editorId,
-        status: 'rejected',
-        reason: rejectionReason
-      })
-
-      // Log activity
-      await logActivity({
-        action: ActivityActions.POST_REJECTED,
-        entityType: 'post',
-        entityId: postId,
-        meta: {
-          title: post?.title,
-          reason: rejectionReason
-        }
-      })
-    },
-    onSuccess: () => {
-      toast.success('Artikel berhasil ditolak')
-      queryClient.invalidateQueries({ queryKey: ['post', postId] })
-      queryClient.invalidateQueries({ queryKey: ['editor-pending-posts'] })
-      router.push('/admin')
-    },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.message || error.message || 'Gagal menolak artikel')
+  const handleReject = () => {
+    if (!rejectionReason.trim()) {
+      return
     }
-  })
+
+    rejectMutation.mutate(
+      { postId, rejectionReason },
+      {
+        onSuccess: () => {
+          router.push('/admin')
+        },
+      }
+    )
+  }
 
   if (isLoading) {
     return (
@@ -232,7 +158,7 @@ export default function ArticleReviewPage() {
                   <>
                     <Button
                       className="w-full gap-2"
-                      onClick={() => approveMutation.mutate()}
+                      onClick={handleApprove}
                       disabled={approveMutation.isPending}
                     >
                       <CheckCircle className="h-4 w-4" />
@@ -263,7 +189,7 @@ export default function ArticleReviewPage() {
                     <Button
                       variant="destructive"
                       className="w-full"
-                      onClick={() => rejectMutation.mutate()}
+                      onClick={handleReject}
                       disabled={rejectMutation.isPending || !rejectionReason.trim()}
                     >
                       {rejectMutation.isPending ? 'Memproses...' : 'Konfirmasi Tolak'}

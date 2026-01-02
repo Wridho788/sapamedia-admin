@@ -3,42 +3,38 @@ import apiClient from './axios'
 import { UserRole } from '@/types'
 
 export interface LogActivityParams {
+  user_id: string
   action: string
-  entityType: string
-  entityId: string
-  meta?: Record<string, any>
+  entity_type: string
+  entity_id: string
+  metadata?: Record<string, any>
 }
 
-export async function logActivity(params: LogActivityParams) {
+async function log(params: LogActivityParams) {
   try {
-    // Get current user from auth
-    const authData = localStorage.getItem('supabase-auth')
-    if (!authData) return
-
-    const parsed = JSON.parse(authData)
-    const userId = parsed.user?.id
-    
-    if (!userId) return
-
     // Get user profile to get role
-    const profileResponse = await apiClient.get(`/rest/v1/profiles?id=eq.${userId}&select=role`)
+    const profileResponse = await apiClient.get(`/rest/v1/profiles?id=eq.${params.user_id}&select=role`)
     const profile = profileResponse.data[0]
     
     if (!profile) return
 
     // Create activity log
     await apiClient.post('/rest/v1/activity_logs', {
-      actor_id: userId,
+      actor_id: params.user_id,
       actor_role: profile.role,
       action: params.action,
-      entity_type: params.entityType,
-      entity_id: params.entityId,
-      meta: params.meta || {}
+      entity_type: params.entity_type,
+      entity_id: params.entity_id,
+      meta: params.metadata || {}
     })
   } catch (error) {
     // Silent fail - don't block main action
     console.error('Failed to log activity:', error)
   }
+}
+
+export const activityLogger = {
+  log,
 }
 
 // Pre-defined action types
