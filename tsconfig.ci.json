@@ -1,0 +1,27 @@
+{
+  "extends": "./tsconfig.json",
+  "include": [
+    "next-env.d.ts",
+    "app/**/*.ts",
+    "app/**/*.tsx",
+    "components/**/*.ts",
+    "components/**/*.tsx",
+    "hooks/**/*.ts",
+    "hooks/**/*.tsx",
+    "lib/**/*.ts",
+    "lib/**/*.tsx",
+    "services/**/*.ts",
+    "services/**/*.tsx",
+    "validation/**/*.ts",
+    "validation/**/*.tsx",
+    "admin/**/*.ts",
+    "admin/**/*.tsx",
+    "proxy.ts",
+    "next.config.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "src",
+    ".next"
+  ]
+}
